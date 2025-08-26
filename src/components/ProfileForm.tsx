@@ -32,8 +32,21 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { profileApi } from "@/hooks/api-service";
 
-// Lazy load the Welcome component
-const Welcome = lazy(() => import("./WelcomePage").then(module => ({ default: module.Welcome })));
+// Lazy load the Welcome component with better error handling
+const Welcome = lazy(() => 
+  import("./WelcomePage").then(module => ({ 
+    default: module.Welcome 
+  })).catch(() => ({
+    default: () => <div className="text-white">Failed to load welcome page</div>
+  }))
+);
+
+// Lazy load the Calendar component to reduce initial bundle
+const LazyCalendar = lazy(() => 
+  import("@/components/ui/calendar").then(module => ({ 
+    default: module.Calendar 
+  }))
+);
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
@@ -115,7 +128,10 @@ export function ProfileForm() {
     return (
       <Suspense fallback={
         <div className="min-h-screen form-gradient flex items-center justify-center">
-          <div className="text-white">Loading...</div>
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-white" />
+            <div className="text-white">Loading welcome page...</div>
+          </div>
         </div>
       }>
         <Welcome onBackToForm={() => setShowWelcome(false)} />
@@ -131,7 +147,8 @@ export function ProfileForm() {
             <img 
               src="/lovable-uploads/yakiya_new_logo.png" 
               alt="Yaki Ya Logo" 
-              className="h-16 w-auto object-contain rounded-full"
+              className="h-16 w-auto object-contain"
+              loading="lazy"
             />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
@@ -145,6 +162,7 @@ export function ProfileForm() {
         <CardContent className="px-8 pb-8">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Name Field */}
               <FormField
                 control={form.control}
                 name="name"
@@ -167,6 +185,7 @@ export function ProfileForm() {
                 )}
               />
 
+              {/* Phone Field */}
               <FormField
                 control={form.control}
                 name="phone"
@@ -194,6 +213,7 @@ export function ProfileForm() {
                 )}
               />
 
+              {/* Card Number Field */}
               <FormField
                 control={form.control}
                 name="cardNumber"
@@ -218,6 +238,7 @@ export function ProfileForm() {
                 )}
               />
 
+              {/* Date of Birth Field with Lazy Calendar */}
               <FormField
                 control={form.control}
                 name="dateOfBirth"
@@ -248,16 +269,20 @@ export function ProfileForm() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-600" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                          className="pointer-events-auto bg-gray-800 text-white"
-                        />
+                        <Suspense fallback={
+                          <div className="p-4 text-white">Loading calendar...</div>
+                        }>
+                          <LazyCalendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                            className="pointer-events-auto bg-gray-800 text-white"
+                          />
+                        </Suspense>
                       </PopoverContent>
                     </Popover>
                     <FormMessage className="text-red-400" />
@@ -265,6 +290,7 @@ export function ProfileForm() {
                 )}
               />
 
+              {/* Email Field */}
               <FormField
                 control={form.control}
                 name="email"
@@ -288,6 +314,7 @@ export function ProfileForm() {
                 )}
               />
 
+              {/* Gender Field */}
               <FormField
                 control={form.control}
                 name="gender"
@@ -314,6 +341,7 @@ export function ProfileForm() {
                 )}
               />
 
+              {/* Submit Button */}
               <Button 
                 type="submit" 
                 disabled={isSubmitting}
