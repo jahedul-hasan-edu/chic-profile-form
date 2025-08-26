@@ -140,7 +140,7 @@ export function ProfileForm() {
             <img 
               src="/lovable-uploads/yakiya_new_logo.png" 
               alt="Yaki Ya Logo" 
-              className="h-16 w-auto object-contain"
+              className="h-16 w-auto object-contain rounded-full"
               loading="lazy"
             />
           </div>
