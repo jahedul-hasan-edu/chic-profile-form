@@ -1,8 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon, User, Mail, Phone, Calendar, Users } from "lucide-react";
+import { CalendarIcon, User, Mail, Phone, Calendar, Users, Loader2, CreditCard } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -29,6 +30,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { profileApi } from "@/hooks/api-service";
+import { Welcome } from "./WelcomePage";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
@@ -40,10 +43,13 @@ const formSchema = z.object({
   gender: z.enum(["male", "female", "others"], {
     required_error: "Please select a gender",
   }),
+  cardNumber: z.string().min(1, "Card number is required").max(20, "Card number must be 20 characters or less"),
 });
 
 export function ProfileForm() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,32 +57,77 @@ export function ProfileForm() {
       name: "",
       phone: "",
       email: "",
+      cardNumber: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    toast({
-      title: "Profile Submitted Successfully!",
-      description: `Welcome ${values.name}! Your profile has been created.`,
-    });
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    
+    try {
+      const profileData = {
+        name: values.name,
+        phone: values.phone,
+        email: values.email,
+        dateOfBirth: format(values.dateOfBirth, "yyyy-MM-dd"),
+        gender: values.gender,
+        cardNumber: values.cardNumber,
+      };
+
+      const response = await profileApi.createProfile(profileData);
+
+      if (response.isSuccess) {
+        toast({
+          title: "🎉 Profile Created Successfully!",
+          description: `Welcome ${values.name}! Your profile has been created and saved.`,
+          duration: 5000,
+        });
+        
+        // Show welcome page after successful submission
+        setShowWelcome(true);
+      } else {
+        // Handle API error response
+        console.error('API Error:', response);
+        toast({
+          title: "❌ Profile Creation Failed",
+          description: response.errorMessage || "Something went wrong. Please try again.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast({
+        title: "❌ Network Error",
+        description: "Unable to connect to the server. Please check your internet connection and try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  // Show welcome page if profile was successfully created
+  if (showWelcome) {
+    return <Welcome onBackToForm={() => setShowWelcome(false)} />;
   }
 
   return (
     <div className="min-h-screen form-gradient flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl mx-auto form-shadow hover:form-shadow-hover transition-all duration-500 border-0 backdrop-blur-sm bg-card/95">
+      <Card className="w-full max-w-2xl mx-auto form-shadow hover:form-shadow-hover transition-all duration-500 border-0 backdrop-blur-sm form-black-theme">
         <CardHeader className="text-center pb-8 pt-8">
           <div className="flex items-center justify-center gap-3 mb-6">
             <img 
-              src="/lovable-uploads/884f3c53-50d4-4ebb-8eca-51aa3367252a.png" 
+              src="/lovable-uploads/yakiya_new_logo.png" 
               alt="Yaki Ya Logo" 
-              className="h-16 w-auto object-contain"
+              className="h-16 w-auto object-contain rounded-full"
             />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent-red bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
             Create Your Profile
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-gray-300 mt-2">
             Please fill in your information to get started
           </p>
         </CardHeader>
@@ -89,18 +140,19 @@ export function ProfileForm() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
+                    <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
+                      <User className="h-4 w-4 text-red-500" />
                       Full Name
                     </FormLabel>
                     <FormControl>
                       <Input 
                         placeholder="Enter your full name" 
-                        className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        className="form-input h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                        disabled={isSubmitting}
                         {...field} 
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-400" />
                   </FormItem>
                 )}
               />
@@ -110,15 +162,16 @@ export function ProfileForm() {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-primary" />
+                    <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
+                      <Phone className="h-4 w-4 text-red-500" />
                       Phone Number
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="tel"
                         placeholder="Enter your phone number (digits only)"
-                        className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        className="form-input h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                        disabled={isSubmitting}
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value.replace(/\D/g, '');
@@ -126,7 +179,31 @@ export function ProfileForm() {
                         }}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-400" />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cardNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
+                      <CreditCard className="h-4 w-4 text-red-500" />
+                      Card Number (NFC)
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="Enter your card number (max 20 characters)"
+                        className="form-input h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                        disabled={isSubmitting}
+                        maxLength={20}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-red-400" />
                   </FormItem>
                 )}
               />
@@ -136,8 +213,8 @@ export function ProfileForm() {
                 name="dateOfBirth"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel className="text-sm font-semibold flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" />
+                    <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
+                      <Calendar className="h-4 w-4 text-red-500" />
                       Date of Birth
                     </FormLabel>
                     <Popover>
@@ -145,9 +222,10 @@ export function ProfileForm() {
                         <FormControl>
                           <Button
                             variant="outline"
+                            disabled={isSubmitting}
                             className={cn(
-                              "h-12 w-full justify-start text-left font-normal transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                              !field.value && "text-muted-foreground"
+                              "h-12 w-full justify-start text-left font-normal transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-800 border-gray-600 text-white hover:bg-gray-700",
+                              !field.value && "text-gray-400"
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -159,7 +237,7 @@ export function ProfileForm() {
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-600" align="start">
                         <CalendarComponent
                           mode="single"
                           selected={field.value}
@@ -168,11 +246,11 @@ export function ProfileForm() {
                             date > new Date() || date < new Date("1900-01-01")
                           }
                           initialFocus
-                          className="pointer-events-auto"
+                          className="pointer-events-auto bg-gray-800 text-white"
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    <FormMessage className="text-red-400" />
                   </FormItem>
                 )}
               />
@@ -182,19 +260,20 @@ export function ProfileForm() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-primary" />
+                    <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
+                      <Mail className="h-4 w-4 text-red-500" />
                       Email Address
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="email"
                         placeholder="Enter your email address"
-                        className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        className="form-input h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                        disabled={isSubmitting}
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-400" />
                   </FormItem>
                 )}
               />
@@ -204,32 +283,40 @@ export function ProfileForm() {
                 name="gender"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-semibold flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
+                    <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
+                      <Users className="h-4 w-4 text-red-500" />
                       Gender
                     </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
                       <FormControl>
-                        <SelectTrigger className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                          <SelectValue placeholder="Select your gender" />
+                        <SelectTrigger className="h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-800 border-gray-600 text-white">
+                          <SelectValue placeholder="Select your gender" className="text-gray-400" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="others">Others</SelectItem>
+                      <SelectContent className="bg-gray-800 border-gray-600">
+                        <SelectItem value="male" className="text-white hover:bg-gray-700 focus:bg-gray-700">Male</SelectItem>
+                        <SelectItem value="female" className="text-white hover:bg-gray-700 focus:bg-gray-700">Female</SelectItem>
+                        <SelectItem value="others" className="text-white hover:bg-gray-700 focus:bg-gray-700">Others</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-red-400" />
                   </FormItem>
                 )}
               />
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-accent-red hover:from-primary/90 hover:to-accent-red/90 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
+                disabled={isSubmitting}
+                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border-0"
               >
-                Create Profile
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Profile...
+                  </>
+                ) : (
+                  "Create Profile"
+                )}
               </Button>
             </form>
           </Form>
