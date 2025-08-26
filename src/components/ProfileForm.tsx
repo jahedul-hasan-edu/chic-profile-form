@@ -41,13 +41,6 @@ const Welcome = lazy(() =>
   }))
 );
 
-// Lazy load the Calendar component to reduce initial bundle
-const LazyCalendar = lazy(() => 
-  import("@/components/ui/calendar").then(module => ({ 
-    default: module.Calendar 
-  }))
-);
-
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
   phone: z.string().regex(/^\d{10,15}$/, "Phone number must be 10-15 digits only"),
@@ -238,7 +231,7 @@ export function ProfileForm() {
                 )}
               />
 
-              {/* Date of Birth Field with Lazy Calendar */}
+              {/* Date of Birth Field */}
               <FormField
                 control={form.control}
                 name="dateOfBirth"
@@ -269,20 +262,16 @@ export function ProfileForm() {
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 bg-gray-800 border-gray-600" align="start">
-                        <Suspense fallback={
-                          <div className="p-4 text-white">Loading calendar...</div>
-                        }>
-                          <LazyCalendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                            className="pointer-events-auto bg-gray-800 text-white"
-                          />
-                        </Suspense>
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                          className="pointer-events-auto bg-gray-800 text-white"
+                        />
                       </PopoverContent>
                     </Popover>
                     <FormMessage className="text-red-400" />
