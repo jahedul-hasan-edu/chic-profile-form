@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { CalendarIcon, User, Mail, Phone, Calendar, Users, Loader2, CreditCard } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -31,7 +31,9 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { profileApi } from "@/hooks/api-service";
-import { Welcome } from "./WelcomePage";
+
+// Lazy load the Welcome component
+const Welcome = lazy(() => import("./WelcomePage").then(module => ({ default: module.Welcome })));
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
@@ -110,7 +112,15 @@ export function ProfileForm() {
 
   // Show welcome page if profile was successfully created
   if (showWelcome) {
-    return <Welcome onBackToForm={() => setShowWelcome(false)} />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen form-gradient flex items-center justify-center">
+          <div className="text-white">Loading...</div>
+        </div>
+      }>
+        <Welcome onBackToForm={() => setShowWelcome(false)} />
+      </Suspense>
+    );
   }
 
   return (
@@ -191,7 +201,7 @@ export function ProfileForm() {
                   <FormItem>
                     <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
                       <CreditCard className="h-4 w-4 text-red-500" />
-                      Card Number (NFC)
+                      Card Number
                     </FormLabel>
                     <FormControl>
                       <Input
