@@ -52,7 +52,7 @@ const formSchema = z.object({
   gender: z.enum(["male", "female", "others"], {
     required_error: "Please select a gender",
   }),
-  cardNumber: z.string().min(1, "Card number is required").max(20, "Card number must be 20 characters or less"),
+  cardNumber: z.string().min(1, "Loyalty Card Number is required").max(20, "Loyalty Card Number must be 20 characters or less"),
 });
 
 export function ProfileForm() {
@@ -208,7 +208,7 @@ export function ProfileForm() {
                 )}
               />
 
-              {/* Card Number Field */}
+              {/* Loyalty Card Number Field */}
               <FormField
                 control={form.control}
                 name="cardNumber"
@@ -216,12 +216,12 @@ export function ProfileForm() {
                   <FormItem>
                     <FormLabel className="text-sm font-semibold flex items-center gap-2 text-white">
                       <CreditCard className="h-4 w-4 text-red-500" />
-                      Card Number
+                      Loyalty Card Number
                     </FormLabel>
                     <FormControl>
                       <Input
                         type="text"
-                        placeholder="Enter your card number (max 20 characters)"
+                        placeholder="Enter your Loyalty Card Number (max 20 characters)"
                         className="form-input h-12 text-base transition-all duration-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
                         disabled={isSubmitting}
                         maxLength={20}
